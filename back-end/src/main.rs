@@ -7,19 +7,32 @@ use std::error::Error;
 use serde_derive::{ Serialize };
 use warp::http::StatusCode;
 use warp::{ Filter, Rejection, Reply };
-use rocksdb::{ DB };
+use rocksdb::{ DB,  };
 
 #[tokio::main]
 async fn main() {
 
-    let _db = DB::open_default("path/for/rocksdb/storage").unwrap();
     
     // GET /
     let index = warp::path::end()
-        .map(|| { 
+    .map( || {
+
+            let path = "database/rocksdb";
+            let db = DB::open_default(path).unwrap();
+            let mut string = String::new();
+
+            db.put(b"data", b"Welcome Matias Suez!").unwrap();
+
+
+            match db.get(b"data") {
+                Ok(Some(value)) => string = String::from_utf8(value).unwrap(),
+                Ok(None) => println!("value not found"),
+                Err(e) => println!("operational problem encountered: {}", e),
+            }
+
             warp::reply::json( &ResponseMessage {
                 code: StatusCode::OK.as_u16(),
-                message: "Index page".to_string()
+                message: format!("Index page: {}", &string)//"Index page".to_string()
             })
         });
 
